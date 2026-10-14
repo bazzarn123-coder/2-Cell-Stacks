@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two Cell Stacks</title>
+    <!-- Custom inline SVG Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%233b82f6%22/><rect x=%2220%22 y=%2260%22 width=%2260%22 height=%2215%22 rx=%223%22 fill=%22%2322c55e%22/><rect x=%2220%22 y=%2240%22 width=%2260%22 height=%2215%22 rx=%223%22 fill=%22%23eab308%22/><rect x=%2220%22 y=%2220%22 width=%2260%22 height=%2215%22 rx=%223%22 fill=%22%23ec4899%22/></svg>">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;900&display=swap');
+        
+        body, html {
+            font-family: 'Fredoka', sans-serif;
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+            user-select: none;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .game-board-bg {
+            background: linear-gradient(180deg, #334155 0%, #0f172a 100%);
+            box-shadow: inset 0 2px 8px rgba(255,255,255,0.25);
+        }
+
+        /* 3D Card-Style Cell Block */
+        .cell-block {
+            position: absolute;
+            left: 4px;
+            right: 4px;
+            height: 48px;
+            border-radius: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #0f172a;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+            transform-style: preserve-3d;
+            background-image: repeating-linear-gradient(
+                180deg,
+                transparent,
+                transparent 6px,
+                rgba(0, 0, 0, 0.15) 6px,
+                rgba(0, 0, 0, 0.15) 7px
+            );
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4), 
+                        inset 0 3px 4px rgba(255,255,255,0.6), 
+                        inset 0 -4px 6px rgba(0,0,0,0.25);
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+        }
+
+        .cube-green { background-color: #22c55e; border-top: 5px solid #4ade80; border-bottom: 4px solid #15803d; }
+        .cube-yellow { background-color: #eab308; border-top: 5px solid #fde047; border-bottom: 4px solid #a16207; }
+        .cube-pink { background-color: #ec4899; border-top: 5px solid #f472b6; border-bottom: 4px solid #be185d; }
+        .cube-blue { background-color: #3b82f6; border-top: 5px solid #60a5fa; border-bottom: 4px solid #1d4ed8; }
+        .cube-red { background-color: #ef4444; border-top: 5px solid #f87171; border-bottom: 4px solid #b91c1c; }
+        .cube-purple { background-color: #a855f7; border-top: 5px solid #c084fc; border-bottom: 4px solid #7e22ce; }
+        .cube-orange { background-color: #f97316; border-top: 5px solid #fb923c; border-bottom: 4px solid #c2410c; }
+        .cube-cyan { background-color: #06b6d4; border-top: 5px solid #22d3ee; border-bottom: 0e7490; }
+
+        @keyframes slideUpIn {
+            0% { transform: translateY(120px) scale(0.6); opacity: 0; }
+            70% { transform: translateY(-8px) scale(1.05); }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .animate-slide-up {
+            animation: slideUpIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes boardSplash {
+            0% { transform: scale(1); filter: brightness(1); }
+            40% { transform: scale(1.03); filter: brightness(1.3); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+        .splash-anim {
+            animation: boardSplash 0.35s ease-in-out;
+        }
+
+        @keyframes floatUp3D {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-55px) scale(1.35); opacity: 0; }
+        }
+        .floating-text {
+            position: absolute;
+            font-weight: 900;
+            font-size: 1.5rem;
+            pointer-events: none;
+            animation: floatUp3D 0.7s ease-out forwards;
+            z-index: 50;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.8);
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+            50% { transform: scale(1.05); box-shadow: 0 0 35px rgba(59, 130, 246, 0.8); }
+        }
+        .pulse-btn {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+
+        @keyframes textBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .animate-blink {
+            animation: textBlink 1.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center w-screen h-screen text-white p-2">
+
+    <!-- FRONT IMAGE SPLASH SCREEN (Placed in front of the original splash screen) -->
+    <div id="image-splash-screen" onclick="dismissImageSplash()" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-60 cursor-pointer overflow-hidden transition-opacity duration-500">
+        <div class="relative w-full max-w-sm h-full max-h-[85vh] flex flex-col items-center justify-between p-4 my-auto">
+            <!-- Background Image Card -->
+            <div class="absolute inset-0 m-auto w-full h-full rounded-3xl overflow-hidden border-2 border-amber-500/40 shadow-[0_0_50px_rgba(245,158,11,0.3)] bg-black">
+                <img src="IMG-20261015-WA0004.jpg" alt="Two Cell Stacks Splash Poster" class="w-full h-full object-cover object-center">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/40"></div>
+            </div>
+
+            <!-- Overlay Content -->
+            <div class="relative z-10 w-full pt-6 text-center">
+                <span class="bg-amber-500/20 text-amber-300 border border-amber-500/50 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full backdrop-blur-md">
+                    Welcome Player
+                </span>
+            </div>
+
+            <!-- Bottom Call To Action -->
+            <div class="relative z-10 w-full pb-4 flex flex-col items-center gap-3">
+                <p class="text-xs font-black uppercase tracking-widest text-amber-300 drop-shadow-md animate-blink">
+                    Tap Anywhere to Continue 👆
+                </p>
+                <button onclick="dismissImageSplash(); event.stopPropagation();" class="w-full py-3.5 px-6 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-lg rounded-2xl shadow-2xl active:scale-95 cursor-pointer border border-amber-300/40">
+                    NEXT ➔
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Original Splash Screen Overlay -->
+    <div id="splash-screen" class="fixed inset-0 bg-slate-950/95 backdrop-blur-lg flex flex-col items-center justify-center z-50 p-6 text-center">
+        <div class="max-w-md w-full bg-slate-900 border-2 border-slate-700 rounded-3xl p-8 shadow-2xl flex flex-col items-center">
+            <!-- Game Logo / Icon -->
+            <div class="flex items-center gap-2 mb-4">
+                <div class="w-12 h-12 bg-pink-500 rounded-xl flex items-center justify-center text-2xl font-black shadow-lg">📦</div>
+                <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center text-2xl font-black shadow-lg">📦</div>
+            </div>
+            
+            <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 mb-2">Two Cell Stacks</h1>
+            <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-6">Strategic 3D Puzzle Challenge</p>
+
+            <!-- Instructions Box -->
+            <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 text-left w-full mb-6 space-y-2 text-xs text-slate-300">
+                <div class="flex items-center gap-2"><span>🎯</span> <span>Clear color goals before running out of moves!</span></div>
+                <div class="flex items-center gap-2"><span>🔄</span> <span>Pick 1 of 2 blocks from your holding cell.</span></div>
+                <div class="flex items-center gap-2"><span>👆</span> <span>Tap any column to fire and match blocks.</span></div>
+                <div class="flex items-center gap-2"><span>⏰</span> <span>Beware! Extra layers drop every 30 seconds!</span></div>
+            </div>
+
+            <!-- Start Game Button -->
+            <button onclick="startGame()" class="w-full py-4 px-8 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-xl rounded-2xl shadow-xl active:scale-95 pulse-btn cursor-pointer">
+                PLAY NOW 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Fullscreen Game Container -->
+    <div id="game-container" class="game-board-bg relative w-full h-full rounded-2xl p-3 flex flex-col justify-between border-2 border-slate-600 shadow-2xl opacity-0 transition-opacity duration-500 pointer-events-none">
+        
+        <!-- Top Bar: Level, Moves, Safe State, Timer & Goals -->
+        <div class="flex items-center justify-between gap-2 bg-slate-950/85 px-3 py-2 rounded-2xl border border-slate-700 shadow-inner flex-shrink-0">
+            <!-- Level Count -->
+            <div class="flex flex-col items-center justify-center bg-slate-900 px-3 py-1 rounded-xl border border-slate-800 shadow">
+                <span class="text-[8px] font-black uppercase text-slate-400">LVL</span>
+                <span id="level-count" class="text-lg font-black text-purple-400 leading-none">1</span>
+            </div>
+
+            <!-- Moves Count -->
+            <div class="flex flex-col items-center justify-center bg-slate-900 px-3 py-1 rounded-xl border border-slate-800 shadow">
+                <span class="text-[8px] font-black uppercase text-slate-400">MOVES</span>
+                <span id="moves-count" class="text-lg font-black text-amber-400 leading-none">30</span>
+            </div>
+
+            <!-- Timer Countdown Display -->
+            <div class="flex flex-col items-center justify-center bg-slate-900 px-3 py-1 rounded-xl border border-slate-800 shadow">
+                <span class="text-[8px] font-black uppercase text-slate-400">LAYER IN</span>
+                <span id="timer-count" class="text-lg font-black text-rose-400 leading-none">30s</span>
+            </div>
+
+            <!-- Safe State Button -->
+            <button id="safe-state-btn" onclick="useSafeState()" title="Restore Safe State Checkpoint" class="flex flex-col items-center justify-center bg-sky-900/80 hover:bg-sky-800 active:scale-95 px-3 py-1 rounded-xl border border-sky-600 transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
+                <span class="text-sm">🛡️</span>
+                <span class="text-[8px] font-black text-sky-200">SAFE</span>
+            </button>
+
+            <!-- Goals Header -->
+            <div id="goals-container" class="flex items-center gap-2 overflow-x-auto max-w-[200px] py-1">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+
+        <!-- Powerups Toolbar -->
+        <div class="grid grid-cols-3 gap-3 px-1 flex-shrink-0">
+            <button onclick="usePowerup('wildcard')" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-xs font-black py-2 px-3 rounded-xl border border-purple-400/40 shadow-lg active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>🌈</span> <span id="pw-wildcard">Wild (1)</span>
+            </button>
+            <button onclick="usePowerup('hammer')" class="bg-gradient-to-r from-amber-600 to-orange-600 text-xs font-black py-2 px-3 rounded-xl border border-amber-400/40 shadow-lg active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>🔨</span> <span id="pw-hammer">Hammer (1)</span>
+            </button>
+            <button onclick="usePowerup('moves')" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-xs font-black py-2 px-3 rounded-xl border border-emerald-400/40 shadow-lg active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>⚡</span> <span id="pw-moves">+8 Moves</span>
+            </button>
+        </div>
+
+        <!-- Main Card Stacks Grid Board with Column Divider Lines -->
+        <div id="board-grid" class="grid flex-grow my-2 px-1 relative items-start bg-slate-950/40 rounded-2xl border border-slate-800 shadow-inner overflow-hidden">
+            <!-- Columns populated dynamically -->
+        </div>
+
+        <!-- Instruction banner -->
+        <div id="instruction-banner" class="text-center font-black text-xs sm:text-sm tracking-widest text-amber-300 uppercase py-2.5 bg-slate-950/80 rounded-xl border border-slate-800 shadow-inner flex-shrink-0">
+            Select from Two Cell Stacks & Tap Column to Fire!
+        </div>
+
+        <!-- Bottom Holding Cell Tray (2 Blocks) -->
+        <div class="flex flex-col items-center p-3 bg-slate-950/80 rounded-2xl border border-slate-800 shadow-xl flex-shrink-0">
+            <span class="text-xs text-slate-300 font-extrabold uppercase tracking-wider mb-2">Two Cell Stacks (Pick 1 of 2):</span>
+
+            <!-- Holding Cell 2 Blocks -->
+            <div id="holding-cell-container" class="flex items-center justify-center gap-6">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Win / Level Up Overlay -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/85 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border-2 border-slate-700 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl">
+            <h2 id="modal-title" class="text-3xl font-black mb-3 text-emerald-400">Level Complete! 🎉</h2>
+            <p id="modal-desc" class="text-slate-300 mb-6 text-sm">Great job! Ready for the next level?</p>
+            <div class="flex gap-2">
+                <button id="modal-btn" onclick="nextLevel()" class="w-full py-3 px-6 bg-emerald-500 hover:bg-emerald-400 text-white font-black text-lg rounded-2xl shadow-lg active:scale-95 cursor-pointer">
+                    Next Level 🚀
+                </button>
+                <button id="modal-safe-btn" onclick="restoreFromModal()" style="display:none;" class="w-full py-3 px-6 bg-sky-600 hover:bg-sky-500 text-white font-black text-lg rounded-2xl shadow-lg active:scale-95 cursor-pointer">
+                    🛡️ Restore Safe State
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ALL_COLORS = ['green', 'yellow', 'pink', 'blue', 'red', 'purple', 'orange', 'cyan'];
+
+        let gameState = {
+            level: 1,
+            moves: 30,
+            goals: {},
+            board: [],
+            holdingCell: [],
+            selectedHoldingIndex: 0,
+            isAnimating: false,
+            powerups: { wildcard: 1, hammer: 1, moves: 1 },
+            activeTool: null
+        };
+
+        let safeStateCheckpoint = null;
+        let layerTimerSeconds = 30;
+        let timerInterval = null;
+        let gameStarted = false;
+
+        function dismissImageSplash() {
+            playSound('pop');
+            const imgSplash = document.getElementById('image-splash-screen');
+            if (!imgSplash) return;
+            imgSplash.style.opacity = '0';
+            setTimeout(() => {
+                imgSplash.style.display = 'none';
+            }, 500);
+        }
+
+        function startGame() {
+            playSound('powerup');
+            const splash = document.getElementById('splash-screen');
+            const container = document.getElementById('game-container');
+            
+            splash.style.opacity = '0';
+            splash.style.transition = 'opacity 0.4s ease';
+            setTimeout(() => {
+                splash.style.display = 'none';
+                container.style.opacity = '1';
+                container.style.pointerEvents = 'auto';
+                gameStarted = true;
+                initGame();
+            }, 400);
+        }
+
+        function getActiveColors() {
+            let colorCount = Math.min(2 + Math.floor((gameState.level - 1) * 0.8), ALL_COLORS.length);
+            return ALL_COLORS.slice(0, colorCount);
+        }
+
+        function getColumnCount() {
+            let cols = 4 + Math.floor((gameState.level - 1) / 2);
+            return Math.min(cols, 7);
+        }
+
+        // Web Audio API Sound Synthesizer
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            let now = audioCtx.currentTime;
+
+            if (type === 'pop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(380, now);
+                osc.frequency.exponentialRampToValueAtTime(750, now + 0.12);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                osc.start(now); osc.stop(now + 0.12);
+            } else if (type === 'match') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(1050, now + 0.22);
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.22);
+                osc.start(now); osc.stop(now + 0.22);
+            } else if (type === 'powerup' || type === 'checkpoint' || type === 'alert') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.08);
+                osc.frequency.setValueAtTime(783.99, now + 0.16);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'win') {
+                let notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    let startTime = now + idx * 0.1;
+                    let o = audioCtx.createOscillator();
+                    let g = audioCtx.createGain();
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.frequency.setValueAtTime(freq, startTime);
+                    g.gain.setValueAtTime(0.35, startTime);
+                    g.gain.linearRampToValueAtTime(0.01, startTime + 0.28);
+                    o.start(startTime); o.stop(startTime + 0.28);
+                });
+            }
+        }
+
+        function initGame() {
+            gameState.moves = 28 + gameState.level * 8;
+            gameState.isAnimating = false;
+            gameState.activeTool = null;
+            gameState.selectedHoldingIndex = 0;
+            layerTimerSeconds = 30;
+
+            let activeCols = getColumnCount();
+            let activeColors = getActiveColors();
+
+            gameState.goals = {};
+            activeColors.forEach(c => {
+                gameState.goals[c] = 12 + gameState.level * 3;
+            });
+
+            gameState.board = [];
+            for (let c = 0; c < activeCols; c++) {
+                let stack = [];
+                let stackHeight = 4 + Math.floor(Math.random() * 3);
+                for (let h = 0; h < stackHeight; h++) {
+                    let randomColor = activeColors[Math.floor(Math.random() * activeColors.length)];
+                    stack.push({ color: randomColor, value: 5 });
+                }
+                gameState.board.push(stack);
+            }
+
+            ensureAllColorsPresent();
+            
+            gameState.holdingCell = [];
+            for (let i = 0; i < 2; i++) {
+                gameState.holdingCell.push(generateRandomBlock());
+            }
+
+            saveSafeStateCheckpoint();
+            resetLayerTimer();
+            render();
+        }
+
+        function resetLayerTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            layerTimerSeconds = 30;
+            timerInterval = setInterval(() => {
+                if (!gameStarted || document.hidden || gameState.isAnimating) return;
+                layerTimerSeconds--;
+                document.getElementById('timer-count').textContent = `${layerTimerSeconds}s`;
+                if (layerTimerSeconds <= 0) {
+                    addRandomLayer();
+                    layerTimerSeconds = 30;
+                }
+            }, 1000);
+        }
+
+        function addRandomLayer() {
+            let activeColors = getActiveColors();
+            gameState.board.forEach(stack => {
+                let randomColor = activeColors[Math.floor(Math.random() * activeColors.length)];
+                stack.push({ color: randomColor, value: 5, isNewlyAdded: true });
+            });
+            playSound('alert');
+            showFloatingText(window.innerWidth / 2, window.innerHeight / 2, 'EXTRA LAYER ADDED! ⚠️', '#f43f5e');
+            render();
+            setTimeout(() => {
+                gameState.board.forEach(col => col.forEach(tile => tile.isNewlyAdded = false));
+            }, 400);
+        }
+
+        function generateRandomBlock() {
+            let activeColors = getActiveColors();
+            let availableColors = activeColors.filter(c => gameState.goals[c] > 0);
+            if (availableColors.length === 0) availableColors = activeColors;
+            let randomColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+            return { color: randomColor, value: 5 };
+        }
+
+        function ensureAllColorsPresent() {
+            let activeColors = getActiveColors();
+            let presentColors = new Set();
+            gameState.board.forEach(col => col.forEach(tile => presentColors.add(tile.color)));
+            for (let color of activeColors) {
+                if (!presentColors.has(color)) {
+                    gameState.board[0].push({ color: color, value: 5 });
+                }
+            }
+        }
+
+        function saveSafeStateCheckpoint() {
+            safeStateCheckpoint = {
+                level: gameState.level,
+                moves: gameState.moves,
+                goals: { ...gameState.goals },
+                board: gameState.board.map(col => col.map(tile => ({ ...tile }))),
+                holdingCell: gameState.holdingCell.map(tile => ({ ...tile })),
+                selectedHoldingIndex: gameState.selectedHoldingIndex,
+                powerups: { ...gameState.powerups }
+            };
+        }
+
+        function useSafeState() {
+            if (!safeStateCheckpoint || gameState.isAnimating) return;
+            gameState.level = safeStateCheckpoint.level;
+            gameState.moves = safeStateCheckpoint.moves;
+            gameState.goals = { ...safeStateCheckpoint.goals };
+            gameState.board = safeStateCheckpoint.board.map(col => col.map(tile => ({ ...tile })));
+            gameState.holdingCell = safeStateCheckpoint.holdingCell.map(tile => ({ ...tile }));
+            gameState.selectedHoldingIndex = safeStateCheckpoint.selectedHoldingIndex;
+            gameState.powerups = { ...safeStateCheckpoint.powerups };
+            gameState.activeTool = null;
+            playSound('checkpoint');
+            resetLayerTimer();
+            showFloatingText(window.innerWidth / 2, 120, 'SAFE STATE RESTORED!', '#38bdf8');
+            render();
+        }
+
+        function restoreFromModal() {
+            if (!safeStateCheckpoint) return;
+            useSafeState();
+            const modal = document.getElementById('modal-overlay');
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
+        function selectHoldingBlock(index) {
+            if (gameState.isAnimating) return;
+            gameState.selectedHoldingIndex = index;
+            playSound('pop');
+            render();
+        }
+
+        function usePowerup(type) {
+            if (gameState.isAnimating) return;
+
+            if (type === 'wildcard') {
+                if (gameState.powerups.wildcard <= 0) return;
+                gameState.powerups.wildcard--;
+                let activeColors = getActiveColors();
+                let availableColors = activeColors.filter(c => gameState.goals[c] > 0);
+                gameState.holdingCell[gameState.selectedHoldingIndex].color = availableColors[Math.floor(Math.random() * availableColors.length)] || activeColors[0];
+                gameState.holdingCell[gameState.selectedHoldingIndex].value = 5;
+                playSound('powerup');
+                render();
+            } else if (type === 'hammer') {
+                if (gameState.powerups.hammer <= 0) return;
+                gameState.activeTool = 'hammer';
+                document.getElementById('instruction-banner').textContent = '🔨 Select column to smash top cell block!';
+                playSound('powerup');
+            } else if (type === 'moves') {
+                if (gameState.powerups.moves <= 0) return;
+                gameState.powerups.moves--;
+                gameState.moves += 8;
+                playSound('powerup');
+                render();
+                showFloatingText(window.innerWidth / 2, 120, '+8 MOVES!', '#4ade80');
+            }
+        }
+
+        function render() {
+            document.getElementById('level-count').textContent = gameState.level;
+            document.getElementById('moves-count').textContent = gameState.moves;
+            document.getElementById('safe-state-btn').disabled = !safeStateCheckpoint;
+
+            document.getElementById('pw-wildcard').textContent = `Wild (${gameState.powerups.wildcard})`;
+            document.getElementById('pw-hammer').textContent = `Hammer (${gameState.powerups.hammer})`;
+            document.getElementById('pw-moves').textContent = `+8 Moves (${gameState.powerups.moves})`;
+
+            if (gameState.activeTool !== 'hammer') {
+                document.getElementById('instruction-banner').textContent = 'Select from Two Cell Stacks & Tap Column to Fire!';
+            }
+
+            // Render Goals dynamically
+            const goalsContainer = document.getElementById('goals-container');
+            goalsContainer.innerHTML = '';
+            let activeColors = getActiveColors();
+            activeColors.forEach(color => {
+                let remaining = gameState.goals[color] || 0;
+                let isDone = remaining <= 0;
+                goalsContainer.innerHTML += `
+                    <div class="flex flex-col items-center flex-shrink-0">
+                        <div class="w-6 h-6 cell-block cube-${color} text-[10px] flex items-center justify-center ${isDone ? 'opacity-40' : ''}" style="position:relative; height:24px;">${color[0].toUpperCase()}</div>
+                        <span class="text-[9px] font-black text-slate-300 mt-1">${isDone ? '✓' : remaining}</span>
+                    </div>
+                `;
+            });
+
+            // Render Holding Cell (2 Blocks)
+            const holdingContainer = document.getElementById('holding-cell-container');
+            holdingContainer.innerHTML = '';
+            gameState.holdingCell.forEach((block, idx) => {
+                const isSelected = idx === gameState.selectedHoldingIndex;
+                const blockDiv = document.createElement('div');
+                blockDiv.className = `w-16 h-16 sm:w-20 sm:h-20 cell-block cube-${block.color} text-2xl sm:text-3xl cursor-pointer transition-all ${isSelected ? 'ring-4 ring-amber-400 scale-110 shadow-2xl z-10' : 'opacity-75 hover:opacity-100'}`;
+                blockDiv.style.position = 'relative';
+                blockDiv.textContent = block.value;
+                blockDiv.title = `Click to select holding stack #${idx + 1}`;
+                blockDiv.onclick = () => selectHoldingBlock(idx);
+                holdingContainer.appendChild(blockDiv);
+            });
+
+            let activeCols = getColumnCount();
+
+            // Render Board Card Stacks Grid with divider lines between columns
+            const boardGrid = document.getElementById('board-grid');
+            boardGrid.innerHTML = '';
+            boardGrid.className = `grid grid-cols-${activeCols} flex-grow my-2 px-1 relative items-start bg-slate-950/40 rounded-2xl border border-slate-800 shadow-inner overflow-hidden`;
+
+            for (let c = 0; c < activeCols; c++) {
+                const colDiv = document.createElement('div');
+                let borderClass = c < activeCols - 1 ? 'border-r border-slate-700/60' : '';
+                colDiv.className = `relative h-full cursor-pointer transition-all p-2 ${borderClass} ${gameState.activeTool === 'hammer' ? 'bg-amber-500/30 border-2 border-amber-400 animate-pulse' : 'hover:bg-slate-800/20'}`;
+                colDiv.id = `column-${c}`;
+                colDiv.onclick = () => handleColumnAction(c);
+
+                let stack = gameState.board[c];
+                for (let i = 0; i < stack.length; i++) {
+                    let tile = stack[i];
+                    const tileDiv = document.createElement('div');
+                    let animClass = (i === stack.length - 1 && tile.isNewlyAdded) ? 'animate-slide-up' : '';
+                    tileDiv.className = `cell-block cube-${tile.color} ${animClass} text-base sm:text-lg`;
+                    tileDiv.style.top = `${10 + i * 32}px`;
+                    tileDiv.style.zIndex = i + 1;
+                    tileDiv.textContent = tile.value;
+                    colDiv.appendChild(tileDiv);
+                }
+                boardGrid.appendChild(colDiv);
+            }
+        }
+
+        function handleColumnAction(colIndex) {
+            if (gameState.isAnimating) return;
+
+            if (gameState.activeTool === 'hammer') {
+                let stack = gameState.board[colIndex];
+                if (stack.length > 0) {
+                    stack.pop();
+                    gameState.powerups.hammer--;
+                    gameState.activeTool = null;
+                    playSound('match');
+                    triggerSplashGrid(colIndex);
+                    showFloatingText(window.innerWidth / 2, window.innerHeight / 2, 'SMASH!', '#fbbf24');
+                    render();
+                } else {
+                    gameState.activeTool = null;
+                    render();
+                }
+                return;
+            }
+
+            if (gameState.moves <= 0) return;
+
+            gameState.isAnimating = true;
+
+            let thrownBlock = { ...gameState.holdingCell[gameState.selectedHoldingIndex], isNewlyAdded: true };
+            let stack = gameState.board[colIndex];
+
+            triggerSplashGrid(colIndex);
+
+            if (stack.length > 0 && stack[stack.length - 1].color === thrownBlock.color) {
+                let matchedIndices = [];
+                for (let i = stack.length - 1; i >= 0; i--) {
+                    if (stack[i].color === thrownBlock.color) {
+                        matchedIndices.push(i);
+                    } else {
+                        break;
+                    }
+                }
+
+                let totalClearedValue = thrownBlock.value;
+                matchedIndices.forEach(() => {
+                    let popped = stack.pop();
+                    totalClearedValue += popped.value;
+                });
+
+                gameState.goals[thrownBlock.color] = Math.max(0, gameState.goals[thrownBlock.color] - totalClearedValue);
+                playSound('match');
+                showFloatingText(window.innerWidth / 2, window.innerHeight / 2, `+${totalClearedValue}!`, '#4ade80');
+            } else {
+                stack.push(thrownBlock);
+                playSound('pop');
+                showFloatingText(window.innerWidth / 2, window.innerHeight / 2, 'STACK!', '#60a5fa');
+                
+                checkForFullStackClears(colIndex, thrownBlock.color);
+            }
+
+            gameState.holdingCell[gameState.selectedHoldingIndex] = generateRandomBlock();
+            gameState.moves--;
+
+            render();
+            checkGameConditions();
+
+            setTimeout(() => {
+                gameState.board.forEach(col => col.forEach(tile => tile.isNewlyAdded = false));
+                gameState.isAnimating = false;
+                render();
+            }, 350);
+        }
+
+        function triggerSplashGrid(colIndex) {
+            const colElem = document.getElementById(`column-${colIndex}`);
+            if (colElem) {
+                colElem.classList.add('splash-anim');
+                setTimeout(() => colElem.classList.remove('splash-anim'), 350);
+            }
+        }
+
+        function showFloatingText(x, y, text, color) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            el.style.left = `${x || window.innerWidth / 2}px`;
+            el.style.top = `${y || window.innerHeight / 2}px`;
+            el.style.color = color;
+            el.textContent = text;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 700);
+        }
+
+        function checkForFullStackClears(colIndex, color) {
+            let stack = gameState.board[colIndex];
+            let matchCount = 0;
+            for (let i = stack.length - 1; i >= 0; i--) {
+                if (stack[i].color === color) {
+                    matchCount++;
+                } else {
+                    break;
+                }
+            }
+
+            if (matchCount >= 2) {
+                let totalClearedValue = 0;
+                for (let k = 0; k < matchCount; k++) {
+                    let popped = stack.pop();
+                    totalClearedValue += popped.value;
+                }
+                gameState.goals[color] = Math.max(0, gameState.goals[color] - totalClearedValue);
+                playSound('match');
+            }
+        }
+
+        function checkGameConditions() {
+            let activeColors = getActiveColors();
+            let won = activeColors.every(c => gameState.goals[c] === 0);
+            if (won) {
+                if (timerInterval) clearInterval(timerInterval);
+                playSound('win');
+                showModal(true);
+                return;
+            }
+
+            if (gameState.moves <= 0) {
+                if (timerInterval) clearInterval(timerInterval);
+                showModal(false);
+            }
+        }
+
+        function showModal(isWin) {
+            const modal = document.getElementById('modal-overlay');
+            const title = document.getElementById('modal-title');
+            const desc = document.getElementById('modal-desc');
+            const btn = document.getElementById('modal-btn');
+            const safeBtn = document.getElementById('modal-safe-btn');
+
+            if (isWin) {
+                title.textContent = `Level ${gameState.level} Cleared! 🎉`;
+                title.className = 'text-3xl font-black mb-3 text-emerald-400';
+                desc.textContent = `Awesome job! Advancing to Level ${gameState.level + 1} with new challenges!`;
+                btn.textContent = `Start Level ${gameState.level + 1} 🚀`;
+                safeBtn.style.display = 'none';
+            } else {
+                title.textContent = 'Out of Moves! 😢';
+                title.className = 'text-3xl font-black mb-3 text-rose-400';
+                desc.textContent = 'You ran out of moves. Restore your Safe State checkpoint or Try Again!';
+                btn.textContent = 'Try Again 🔄';
+                safeBtn.style.display = 'block';
+            }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function nextLevel() {
+            const modal = document.getElementById('modal-overlay');
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+            
+            let activeColors = getActiveColors();
+            let won = activeColors.every(c => gameState.goals[c] === 0);
+            if (won) {
+                gameState.level++;
+            }
+            initGame();
+        }
+    </script>
+</body>
+</html>
