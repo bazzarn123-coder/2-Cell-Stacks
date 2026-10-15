@@ -11,25 +11,27 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;900&display=swap');
         
-        /* Generous bottom padding to keep elements well clear of mobile nav bars */
+        /* Force explicit bottom padding so content never touches or hides behind nav bars */
         body, html {
             font-family: 'Fredoka', sans-serif;
             background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
             user-select: none;
-            overflow: hidden;
             width: 100vw;
-            height: 100dvh;
+            min-height: 100dvh;
             margin: 0;
-            padding-top: max(4px, env(safe-area-inset-top));
-            padding-bottom: max(56px, calc(env(safe-area-inset-bottom) + 40px));
-            padding-left: max(6px, env(safe-area-inset-left));
-            padding-right: max(6px, env(safe-area-inset-right));
+            padding: 8px 8px 110px 8px; /* Massive bottom clearance */
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
         }
 
         #game-container {
-            height: 94%;
-            max-height: 94%;
+            width: 100%;
+            max-width: 480px;
+            height: calc(100dvh - 130px);
+            min-height: 520px;
         }
 
         .game-board-bg {
@@ -42,7 +44,7 @@
             position: absolute;
             left: 4px;
             right: 4px;
-            height: 40px;
+            height: 38px;
             border-radius: 0.75rem;
             display: flex;
             align-items: center;
@@ -58,7 +60,7 @@
                 rgba(0, 0, 0, 0.15) 5px,
                 rgba(0, 0, 0, 0.15) 6px
             );
-            box-shadow: 0 6px 12px rgba(0,0,0,0.4), 
+            box-shadow: 0 5px 10px rgba(0,0,0,0.4), 
                         inset 0 3px 4px rgba(255,255,255,0.6), 
                         inset 0 -4px 6px rgba(0,0,0,0.25);
             transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
@@ -122,7 +124,7 @@
         }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center w-screen h-screen text-white p-1">
+<body>
 
     <!-- FRONT IMAGE SPLASH SCREEN -->
     <div id="image-splash-screen" onclick="dismissImageSplash()" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-60 cursor-pointer overflow-hidden transition-opacity duration-500 px-4 pt-10 pb-8">
@@ -177,7 +179,7 @@
     </div>
 
     <!-- Main Fullscreen Game Container -->
-    <div id="game-container" class="game-board-bg relative w-full rounded-2xl p-2.5 flex flex-col justify-between border-2 border-slate-600 shadow-2xl opacity-0 transition-opacity duration-500 pointer-events-none">
+    <div id="game-container" class="game-board-bg relative rounded-2xl p-2.5 flex flex-col justify-between border-2 border-slate-600 shadow-2xl opacity-0 transition-opacity duration-500 pointer-events-none">
         
         <!-- Separate Dedicated Goals Bar Row -->
         <div class="flex items-center justify-between bg-slate-950/90 px-3 py-1.5 rounded-xl border border-slate-700/80 shadow flex-shrink-0 mb-1">
