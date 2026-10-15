@@ -133,15 +133,15 @@
 </head>
 <body>
 
-    <!-- FRONT IMAGE SPLASH SCREEN (Crystal Clear, Badge & Button Removed) -->
+    <!-- FRONT IMAGE SPLASH SCREEN -->
     <div id="image-splash-screen" onclick="dismissImageSplash()" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-60 cursor-pointer overflow-hidden transition-opacity duration-500 px-4 py-4">
         <div class="relative w-full max-w-sm h-full max-h-[82vh] flex flex-col items-center justify-end p-4 my-auto">
-            <!-- Background Image Card (Crystal Clear) -->
+            <!-- Background Image Card -->
             <div class="absolute inset-0 m-auto w-full h-full rounded-3xl overflow-hidden border-2 border-amber-500/40 shadow-2xl bg-black">
                 <img src="IMG-20261015-WA0004.jpg" alt="Two Cell Stacks Splash Poster" class="w-full h-full object-cover object-center">
             </div>
 
-            <!-- Bottom Tap Prompt (Placed where the button was) -->
+            <!-- Bottom Tap Prompt -->
             <div class="relative z-10 w-full pb-8 pt-16 flex flex-col items-center justify-end text-center bg-gradient-to-t from-slate-950/95 via-slate-950/50 to-transparent rounded-b-3xl">
                 <p class="text-sm sm:text-base font-black uppercase tracking-widest text-amber-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] animate-blink">
                     Tap Anywhere to Play 👆
@@ -159,33 +159,45 @@
             <div id="goals-container" class="flex items-center gap-2 overflow-x-auto py-0.5"></div>
         </div>
 
-        <!-- Top Stats Bar: Level, Moves, Safe State, Timer & Volume Toggle -->
-        <div class="flex items-center justify-between gap-1.5 bg-slate-950/85 px-3 py-1.5 rounded-xl border border-slate-700 shadow-inner flex-shrink-0">
-            <div class="flex flex-col items-center justify-center bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800 shadow">
+        <!-- Top Stats Bar: Level, Moves, Safe State, Save, Resume, Timer & Volume Toggle -->
+        <div class="flex items-center justify-between gap-1 bg-slate-950/85 px-2 py-1.5 rounded-xl border border-slate-700 shadow-inner flex-shrink-0">
+            <div class="flex flex-col items-center justify-center bg-slate-900 px-1.5 py-0.5 rounded-lg border border-slate-800 shadow">
                 <span class="text-[7px] font-black uppercase text-slate-400">LVL</span>
-                <span id="level-count" class="text-sm font-black text-purple-400 leading-none">1</span>
+                <span id="level-count" class="text-xs sm:text-sm font-black text-purple-400 leading-none">1</span>
             </div>
 
-            <div class="flex flex-col items-center justify-center bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800 shadow">
+            <div class="flex flex-col items-center justify-center bg-slate-900 px-1.5 py-0.5 rounded-lg border border-slate-800 shadow">
                 <span class="text-[7px] font-black uppercase text-slate-400">MOVES</span>
-                <span id="moves-count" class="text-sm font-black text-amber-400 leading-none">30</span>
+                <span id="moves-count" class="text-xs sm:text-sm font-black text-amber-400 leading-none">30</span>
             </div>
 
-            <div class="flex flex-col items-center justify-center bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800 shadow">
+            <div class="flex flex-col items-center justify-center bg-slate-900 px-1.5 py-0.5 rounded-lg border border-slate-800 shadow">
                 <span class="text-[7px] font-black uppercase text-slate-400">LAYER IN</span>
-                <span id="timer-count" class="text-sm font-black text-rose-400 leading-none">30s</span>
+                <span id="timer-count" class="text-xs sm:text-sm font-black text-rose-400 leading-none">30s</span>
             </div>
 
             <!-- Safe State Button -->
-            <button id="safe-state-btn" onclick="useSafeState()" title="Restore Safe State Checkpoint" class="flex flex-col items-center justify-center bg-sky-900/80 hover:bg-sky-800 active:scale-95 px-2 py-0.5 rounded-lg border border-sky-600 transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
+            <button id="safe-state-btn" onclick="useSafeState()" title="Restore Safe State Checkpoint" class="flex flex-col items-center justify-center bg-sky-900/80 hover:bg-sky-800 active:scale-95 px-1.5 py-0.5 rounded-lg border border-sky-600 transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
                 <span class="text-xs">🛡️</span>
-                <span class="text-[7px] font-black text-sky-200">SAFE</span>
+                <span class="text-[6px] font-black text-sky-200">SAFE</span>
+            </button>
+
+            <!-- Save Game Button -->
+            <button id="save-btn" onclick="saveGame()" title="Save Game" class="flex flex-col items-center justify-center bg-emerald-900/80 hover:bg-emerald-800 active:scale-95 px-1.5 py-0.5 rounded-lg border border-emerald-600 transition cursor-pointer">
+                <span class="text-xs">💾</span>
+                <span class="text-[6px] font-black text-emerald-200">SAVE</span>
+            </button>
+
+            <!-- Resume Game Button -->
+            <button id="resume-btn" onclick="resumeGame()" title="Resume Saved Game" class="flex flex-col items-center justify-center bg-indigo-900/80 hover:bg-indigo-800 active:scale-95 px-1.5 py-0.5 rounded-lg border border-indigo-600 transition cursor-pointer">
+                <span class="text-xs">📂</span>
+                <span class="text-[6px] font-black text-indigo-200">RESUME</span>
             </button>
 
             <!-- Volume Toggle Button -->
-            <button id="sound-btn" onclick="toggleSound()" title="Toggle Sound" class="flex flex-col items-center justify-center bg-slate-900 hover:bg-slate-800 active:scale-95 px-2 py-0.5 rounded-lg border border-slate-700 transition cursor-pointer">
+            <button id="sound-btn" onclick="toggleSound()" title="Toggle Sound" class="flex flex-col items-center justify-center bg-slate-900 hover:bg-slate-800 active:scale-95 px-1.5 py-0.5 rounded-lg border border-slate-700 transition cursor-pointer">
                 <span id="sound-icon" class="text-xs">🔊</span>
-                <span id="sound-text" class="text-[7px] font-black text-slate-300">SOUND</span>
+                <span id="sound-text" class="text-[6px] font-black text-slate-300">SOUND</span>
             </button>
         </div>
 
@@ -271,7 +283,13 @@
                 container.style.opacity = '1';
                 container.style.pointerEvents = 'auto';
                 gameStarted = true;
-                initGame();
+                
+                // Check if there is an existing saved game on startup
+                if (localStorage.getItem('twoCellStacks_saveGame')) {
+                    resumeGame();
+                } else {
+                    initGame();
+                }
             }, 500);
         }
 
@@ -367,7 +385,51 @@
 
             saveSafeStateCheckpoint();
             resetLayerTimer();
+            saveGame(); // Auto-save new game start
             render();
+        }
+
+        // --- Save and Resume Features ---
+        function saveGame() {
+            try {
+                const saveData = {
+                    gameState: gameState,
+                    safeStateCheckpoint: safeStateCheckpoint,
+                    layerTimerSeconds: layerTimerSeconds
+                };
+                localStorage.setItem('twoCellStacks_saveGame', JSON.stringify(saveData));
+                playSound('checkpoint');
+                showFloatingText(window.innerWidth / 2, 120, 'GAME SAVED! 💾', '#38bdf8');
+            } catch (e) {
+                console.error('Failed to save game:', e);
+            }
+        }
+
+        function resumeGame() {
+            try {
+                const saved = localStorage.getItem('twoCellStacks_saveGame');
+                if (!saved) {
+                    showFloatingText(window.innerWidth / 2, 120, 'NO SAVED GAME FOUND!', '#f43f5e');
+                    playSound('alert');
+                    return false;
+                }
+                const saveData = JSON.parse(saved);
+                gameState = saveData.gameState;
+                safeStateCheckpoint = saveData.safeStateCheckpoint;
+                layerTimerSeconds = saveData.layerTimerSeconds || 30;
+
+                if (timerInterval) clearInterval(timerInterval);
+                resetLayerTimer();
+
+                playSound('powerup');
+                showFloatingText(window.innerWidth / 2, 120, 'GAME RESUMED! 📂', '#4ade80');
+                render();
+                return true;
+            } catch (e) {
+                console.error('Failed to resume game:', e);
+                showFloatingText(window.innerWidth / 2, 120, 'RESUME FAILED!', '#f43f5e');
+                return false;
+            }
         }
 
         function resetLayerTimer() {
@@ -442,6 +504,7 @@
             playSound('checkpoint');
             resetLayerTimer();
             showFloatingText(window.innerWidth / 2, 120, 'SAFE STATE RESTORED!', '#38bdf8');
+            saveGame();
             render();
         }
 
@@ -471,6 +534,7 @@
                 gameState.holdingCell[gameState.selectedHoldingIndex].color = availableColors[Math.floor(Math.random() * availableColors.length)] || activeColors[0];
                 gameState.holdingCell[gameState.selectedHoldingIndex].value = 5;
                 playSound('powerup');
+                saveGame();
                 render();
             } else if (type === 'hammer') {
                 if (gameState.powerups.hammer <= 0) return;
@@ -482,6 +546,7 @@
                 gameState.powerups.moves--;
                 gameState.moves += 8;
                 playSound('powerup');
+                saveGame();
                 render();
                 showFloatingText(window.innerWidth / 2, 120, '+8 MOVES!', '#4ade80');
             }
@@ -500,7 +565,7 @@
                 document.getElementById('instruction-banner').textContent = 'Select from Two Cell Stacks & Tap Column to Fire!';
             }
 
-            // Render Goals inside dedicated row (Dynamically removes icons as they hit 0)
+            // Render Goals inside dedicated row
             const goalsContainer = document.getElementById('goals-container');
             goalsContainer.innerHTML = '';
             let activeColors = getActiveColors();
@@ -571,6 +636,7 @@
                     playSound('match');
                     triggerSplashGrid(colIndex);
                     showFloatingText(window.innerWidth / 2, window.innerHeight / 2, 'SMASH!', '#fbbf24');
+                    saveGame();
                     render();
                 } else {
                     gameState.activeTool = null;
@@ -618,6 +684,7 @@
             gameState.holdingCell[gameState.selectedHoldingIndex] = generateRandomBlock();
             gameState.moves--;
 
+            saveGame(); // Auto-save after each move
             render();
             checkGameConditions();
 
