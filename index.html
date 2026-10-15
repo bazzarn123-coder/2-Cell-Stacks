@@ -252,7 +252,6 @@
         let isMuted = false;
 
         window.addEventListener('DOMContentLoaded', () => {
-            // Check if save exists on load to style/adjust continue button if needed
             const hasSave = localStorage.getItem('twoCellStacks_saveGame');
             const continueBtn = document.getElementById('splash-continue-btn');
             if (continueBtn && !hasSave) {
@@ -433,11 +432,22 @@
                     return false;
                 }
                 gameState = saveData.gameState;
+                gameState.isAnimating = false; // Prevent stuck animation locks
                 safeStateCheckpoint = saveData.safeStateCheckpoint;
                 layerTimerSeconds = saveData.layerTimerSeconds || 30;
 
                 if (timerInterval) clearInterval(timerInterval);
-                resetLayerTimer();
+                
+                // Proper interval loop preserving timer state
+                timerInterval = setInterval(() => {
+                    if (!gameStarted || document.hidden || gameState.isAnimating) return;
+                    layerTimerSeconds--;
+                    document.getElementById('timer-count').textContent = `${layerTimerSeconds}s`;
+                    if (layerTimerSeconds <= 0) {
+                        addRandomLayer();
+                        layerTimerSeconds = 30;
+                    }
+                }, 1000);
 
                 playSound('powerup');
                 showFloatingText(window.innerWidth / 2, 120, 'GAME RESUMED! 📂', '#4ade80');
