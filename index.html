@@ -111,20 +111,12 @@
             z-index: 50;
             text-shadow: 0 4px 10px rgba(0,0,0,0.8);
         }
-
-        @keyframes textBlink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-        .animate-blink {
-            animation: textBlink 1.5s infinite ease-in-out;
-        }
     </style>
 </head>
 <body>
 
-    <!-- FRONT IMAGE SPLASH SCREEN WITH FALLBACK -->
-    <div id="image-splash-screen" onclick="dismissImageSplash()" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 cursor-pointer overflow-hidden transition-opacity duration-500 px-4 py-4">
+    <!-- FRONT IMAGE SPLASH SCREEN WITH NEW GAME / CONTINUE BUTTONS -->
+    <div id="image-splash-screen" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 overflow-hidden transition-opacity duration-500 px-4 py-4">
         <div class="relative w-full max-w-sm h-full max-h-[82vh] flex flex-col items-center justify-end p-4 my-auto">
             <div class="absolute inset-0 m-auto w-full h-full rounded-3xl overflow-hidden border-2 border-amber-500/40 shadow-2xl bg-black flex items-center justify-center">
                 <img src="IMG-20261015-WA0004.jpg" alt="Two Cell Stacks Splash Poster" class="w-full h-full object-cover object-center" onerror="this.style.display='none'; document.getElementById('splash-fallback').style.display='flex';">
@@ -135,10 +127,14 @@
                 </div>
             </div>
 
-            <div class="relative z-10 w-full pb-8 pt-16 flex flex-col items-center justify-end text-center bg-gradient-to-t from-slate-950/95 via-slate-950/50 to-transparent rounded-b-3xl">
-                <p class="text-sm sm:text-base font-black uppercase tracking-widest text-amber-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] animate-blink">
-                    Tap Anywhere to Play 👆
-                </p>
+            <!-- Title Screen Action Buttons -->
+            <div class="relative z-10 w-full pb-6 pt-16 flex flex-col items-center gap-2.5 text-center bg-gradient-to-t from-slate-950/95 via-slate-950/50 to-transparent rounded-b-3xl">
+                <button id="splash-continue-btn" onclick="splashContinueGame()" class="w-11/12 max-w-xs py-3 px-5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl shadow-lg active:scale-95 transition cursor-pointer flex items-center justify-center gap-2">
+                    <span>📂</span> Continue Game
+                </button>
+                <button onclick="splashNewGame()" class="w-11/12 max-w-xs py-3 px-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl shadow-lg active:scale-95 transition cursor-pointer flex items-center justify-center gap-2">
+                    <span>🎮</span> New Game
+                </button>
             </div>
         </div>
     </div>
@@ -255,16 +251,29 @@
         let gameStarted = false;
         let isMuted = false;
 
+        window.addEventListener('DOMContentLoaded', () => {
+            // Check if save exists on load to style/adjust continue button if needed
+            const hasSave = localStorage.getItem('twoCellStacks_saveGame');
+            const continueBtn = document.getElementById('splash-continue-btn');
+            if (continueBtn && !hasSave) {
+                continueBtn.style.opacity = '0.6';
+                continueBtn.title = 'No saved game found (will start new game)';
+            }
+        });
+
         function toggleSound() {
             isMuted = !isMuted;
             document.getElementById('sound-icon').textContent = isMuted ? '🔇' : '🔊';
             document.getElementById('sound-text').textContent = isMuted ? 'MUTED' : 'SOUND';
         }
 
-        function dismissImageSplash() {
+        function dismissSplashAnimation(callback) {
             playSound('pop');
             const imgSplash = document.getElementById('image-splash-screen');
-            if (!imgSplash) return;
+            if (!imgSplash) {
+                if (callback) callback();
+                return;
+            }
             imgSplash.style.opacity = '0';
             setTimeout(() => {
                 imgSplash.remove();
@@ -272,13 +281,26 @@
                 container.style.opacity = '1';
                 container.style.pointerEvents = 'auto';
                 gameStarted = true;
-                
-                if (localStorage.getItem('twoCellStacks_saveGame')) {
+                if (callback) callback();
+            }, 500);
+        }
+
+        function splashNewGame() {
+            localStorage.removeItem('twoCellStacks_saveGame');
+            dismissSplashAnimation(() => {
+                initGame();
+            });
+        }
+
+        function splashContinueGame() {
+            const hasSave = localStorage.getItem('twoCellStacks_saveGame');
+            dismissSplashAnimation(() => {
+                if (hasSave) {
                     resumeGame();
                 } else {
                     initGame();
                 }
-            }, 500);
+            });
         }
 
         function getActiveColors() {
@@ -594,7 +616,6 @@
 
             const boardGrid = document.getElementById('board-grid');
             boardGrid.innerHTML = '';
-            // Fixed dynamic grid-template-columns inline style to prevent Tailwind CDN grid collapse
             boardGrid.style.gridTemplateColumns = `repeat(${activeCols}, minmax(0, 1fr))`;
             boardGrid.className = `grid flex-grow my-1 px-1 relative items-start bg-slate-950/40 rounded-xl border border-slate-800 shadow-inner overflow-hidden`;
 
