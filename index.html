@@ -112,14 +112,6 @@
             text-shadow: 0 4px 10px rgba(0,0,0,0.8);
         }
 
-        @keyframes pulseGlow {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
-            50% { transform: scale(1.05); box-shadow: 0 0 35px rgba(59, 130, 246, 0.8); }
-        }
-        .pulse-btn {
-            animation: pulseGlow 2s infinite ease-in-out;
-        }
-
         @keyframes textBlink {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.4; }
@@ -131,12 +123,18 @@
 </head>
 <body>
 
-    <!-- FRONT IMAGE SPLASH SCREEN -->
-    <div id="image-splash-screen" onclick="dismissImageSplash()" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-60 cursor-pointer overflow-hidden transition-opacity duration-500 px-4 py-4">
+    <!-- FRONT IMAGE SPLASH SCREEN WITH FALLBACK -->
+    <div id="image-splash-screen" onclick="dismissImageSplash()" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 cursor-pointer overflow-hidden transition-opacity duration-500 px-4 py-4">
         <div class="relative w-full max-w-sm h-full max-h-[82vh] flex flex-col items-center justify-end p-4 my-auto">
-            <div class="absolute inset-0 m-auto w-full h-full rounded-3xl overflow-hidden border-2 border-amber-500/40 shadow-2xl bg-black">
-                <img src="IMG-20261015-WA0004.jpg" alt="Two Cell Stacks Splash Poster" class="w-full h-full object-cover object-center">
+            <div class="absolute inset-0 m-auto w-full h-full rounded-3xl overflow-hidden border-2 border-amber-500/40 shadow-2xl bg-black flex items-center justify-center">
+                <img src="IMG-20261015-WA0004.jpg" alt="Two Cell Stacks Splash Poster" class="w-full h-full object-cover object-center" onerror="this.style.display='none'; document.getElementById('splash-fallback').style.display='flex';">
+                <div id="splash-fallback" class="absolute inset-0 bg-gradient-to-br from-blue-900 via-slate-900 to-purple-950 flex-col items-center justify-center p-6 text-center" style="display:none;">
+                    <div class="text-6xl mb-4">🧱✨</div>
+                    <h1 class="text-2xl font-black text-amber-400 mb-2">Two Cell Stacks</h1>
+                    <p class="text-xs text-slate-300">Match and stack cell blocks to victory!</p>
+                </div>
             </div>
+
             <div class="relative z-10 w-full pb-8 pt-16 flex flex-col items-center justify-end text-center bg-gradient-to-t from-slate-950/95 via-slate-950/50 to-transparent rounded-b-3xl">
                 <p class="text-sm sm:text-base font-black uppercase tracking-widest text-amber-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] animate-blink">
                     Tap Anywhere to Play 👆
@@ -148,7 +146,7 @@
     <!-- Main Fullscreen Game Container -->
     <div id="game-container" class="game-board-bg relative rounded-2xl p-2.5 flex flex-col justify-between border-2 border-slate-600 shadow-2xl opacity-0 transition-opacity duration-500 pointer-events-none">
         
-        <!-- Separate Dedicated Goals Bar Row -->
+        <!-- Dedicated Goals Bar Row -->
         <div class="flex items-center justify-between bg-slate-950/90 px-3 py-1.5 rounded-xl border border-slate-700/80 shadow flex-shrink-0 mb-1">
             <span class="text-[9px] font-black uppercase text-amber-400 tracking-wider">TARGET GOALS:</span>
             <div id="goals-container" class="flex items-center gap-2 overflow-x-auto py-0.5"></div>
@@ -294,63 +292,57 @@
         }
 
         let audioCtx = null;
-        function getAudioContext() {
+        function initAudio() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            return audioCtx;
         }
 
         function playSound(type) {
             if (isMuted) return;
-            try {
-                const ctx = getAudioContext();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                let now = ctx.currentTime;
+            initAudio();
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            let now = audioCtx.currentTime;
 
-                if (type === 'pop') {
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(380, now);
-                    osc.frequency.exponentialRampToValueAtTime(750, now + 0.12);
-                    gain.gain.setValueAtTime(0.3, now);
-                    gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
-                    osc.start(now); osc.stop(now + 0.12);
-                } else if (type === 'match') {
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(500, now);
-                    osc.frequency.exponentialRampToValueAtTime(1050, now + 0.22);
-                    gain.gain.setValueAtTime(0.35, now);
-                    gain.gain.linearRampToValueAtTime(0.01, now + 0.22);
-                    osc.start(now); osc.stop(now + 0.22);
-                } else if (type === 'powerup' || type === 'checkpoint' || type === 'alert') {
-                    osc.type = 'square';
-                    osc.frequency.setValueAtTime(523.25, now);
-                    osc.frequency.setValueAtTime(659.25, now + 0.08);
-                    osc.frequency.setValueAtTime(783.99, now + 0.16);
-                    gain.gain.setValueAtTime(0.3, now);
-                    gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
-                    osc.start(now); osc.stop(now + 0.3);
-                } else if (type === 'win') {
-                    let notes = [523.25, 659.25, 783.99, 1046.50];
-                    notes.forEach((freq, idx) => {
-                        let startTime = now + idx * 0.1;
-                        let o = ctx.createOscillator();
-                        let g = ctx.createGain();
-                        o.connect(g); g.connect(ctx.destination);
-                        o.frequency.setValueAtTime(freq, startTime);
-                        g.gain.setValueAtTime(0.35, startTime);
-                        g.gain.linearRampToValueAtTime(0.01, startTime + 0.28);
-                        o.start(startTime); o.stop(startTime + 0.28);
-                    });
-                }
-            } catch (e) {
-                console.error("Audio error:", e);
+            if (type === 'pop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(380, now);
+                osc.frequency.exponentialRampToValueAtTime(750, now + 0.12);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                osc.start(now); osc.stop(now + 0.12);
+            } else if (type === 'match') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(1050, now + 0.22);
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.22);
+                osc.start(now); osc.stop(now + 0.22);
+            } else if (type === 'powerup' || type === 'checkpoint' || type === 'alert') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.08);
+                osc.frequency.setValueAtTime(783.99, now + 0.16);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'win') {
+                let notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    let startTime = now + idx * 0.1;
+                    let o = audioCtx.createOscillator();
+                    let g = audioCtx.createGain();
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.frequency.setValueAtTime(freq, startTime);
+                    g.gain.setValueAtTime(0.35, startTime);
+                    g.gain.linearRampToValueAtTime(0.01, startTime + 0.28);
+                    o.start(startTime); o.stop(startTime + 0.28);
+                });
             }
         }
 
@@ -401,8 +393,6 @@
                     layerTimerSeconds: layerTimerSeconds
                 };
                 localStorage.setItem('twoCellStacks_saveGame', JSON.stringify(saveData));
-                playSound('checkpoint');
-                showFloatingText(window.innerWidth / 2, 120, 'GAME SAVED! 💾', '#38bdf8');
             } catch (e) {
                 console.error('Failed to save game:', e);
             }
@@ -412,11 +402,14 @@
             try {
                 const saved = localStorage.getItem('twoCellStacks_saveGame');
                 if (!saved) {
-                    showFloatingText(window.innerWidth / 2, 120, 'NO SAVED GAME FOUND!', '#f43f5e');
-                    playSound('alert');
+                    initGame();
                     return false;
                 }
                 const saveData = JSON.parse(saved);
+                if (!saveData || !saveData.gameState) {
+                    initGame();
+                    return false;
+                }
                 gameState = saveData.gameState;
                 safeStateCheckpoint = saveData.safeStateCheckpoint;
                 layerTimerSeconds = saveData.layerTimerSeconds || 30;
@@ -429,8 +422,9 @@
                 render();
                 return true;
             } catch (e) {
-                console.error('Failed to resume game:', e);
-                showFloatingText(window.innerWidth / 2, 120, 'RESUME FAILED!', '#f43f5e');
+                console.error('Failed to resume game, starting new game:', e);
+                localStorage.removeItem('twoCellStacks_saveGame');
+                initGame();
                 return false;
             }
         }
@@ -441,8 +435,7 @@
             timerInterval = setInterval(() => {
                 if (!gameStarted || document.hidden || gameState.isAnimating) return;
                 layerTimerSeconds--;
-                const timerElem = document.getElementById('timer-count');
-                if (timerElem) timerElem.textContent = `${layerTimerSeconds}s`;
+                document.getElementById('timer-count').textContent = `${layerTimerSeconds}s`;
                 if (layerTimerSeconds <= 0) {
                     addRandomLayer();
                     layerTimerSeconds = 30;
@@ -601,7 +594,7 @@
 
             const boardGrid = document.getElementById('board-grid');
             boardGrid.innerHTML = '';
-            // FIX: Using explicit inline grid-template-columns instead of dynamic Tailwind classes to prevent layout freezing
+            // Fixed dynamic grid-template-columns inline style to prevent Tailwind CDN grid collapse
             boardGrid.style.gridTemplateColumns = `repeat(${activeCols}, minmax(0, 1fr))`;
             boardGrid.className = `grid flex-grow my-1 px-1 relative items-start bg-slate-950/40 rounded-xl border border-slate-800 shadow-inner overflow-hidden`;
 
