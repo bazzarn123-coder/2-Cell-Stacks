@@ -11,7 +11,6 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;900&display=swap');
         
-        /* Universal responsive layout for phones, tablets, and safe insets */
         body, html {
             font-family: 'Fredoka', sans-serif;
             background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
@@ -46,7 +45,6 @@
             box-shadow: inset 0 2px 8px rgba(255,255,255,0.25);
         }
 
-        /* 3D Card-Style Cell Block */
         .cell-block {
             position: absolute;
             left: 4px;
@@ -136,12 +134,9 @@
     <!-- FRONT IMAGE SPLASH SCREEN -->
     <div id="image-splash-screen" onclick="dismissImageSplash()" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-60 cursor-pointer overflow-hidden transition-opacity duration-500 px-4 py-4">
         <div class="relative w-full max-w-sm h-full max-h-[82vh] flex flex-col items-center justify-end p-4 my-auto">
-            <!-- Background Image Card -->
             <div class="absolute inset-0 m-auto w-full h-full rounded-3xl overflow-hidden border-2 border-amber-500/40 shadow-2xl bg-black">
                 <img src="IMG-20261015-WA0004.jpg" alt="Two Cell Stacks Splash Poster" class="w-full h-full object-cover object-center">
             </div>
-
-            <!-- Bottom Tap Prompt -->
             <div class="relative z-10 w-full pb-8 pt-16 flex flex-col items-center justify-end text-center bg-gradient-to-t from-slate-950/95 via-slate-950/50 to-transparent rounded-b-3xl">
                 <p class="text-sm sm:text-base font-black uppercase tracking-widest text-amber-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] animate-blink">
                     Tap Anywhere to Play 👆
@@ -159,7 +154,7 @@
             <div id="goals-container" class="flex items-center gap-2 overflow-x-auto py-0.5"></div>
         </div>
 
-        <!-- Top Stats Bar: Level, Moves, Safe State, Save, Resume, Timer & Volume Toggle -->
+        <!-- Top Stats Bar -->
         <div class="flex items-center justify-between gap-1 bg-slate-950/85 px-2 py-1.5 rounded-xl border border-slate-700 shadow-inner flex-shrink-0">
             <div class="flex flex-col items-center justify-center bg-slate-900 px-1.5 py-0.5 rounded-lg border border-slate-800 shadow">
                 <span class="text-[7px] font-black uppercase text-slate-400">LVL</span>
@@ -176,25 +171,21 @@
                 <span id="timer-count" class="text-xs sm:text-sm font-black text-rose-400 leading-none">30s</span>
             </div>
 
-            <!-- Safe State Button -->
             <button id="safe-state-btn" onclick="useSafeState()" title="Restore Safe State Checkpoint" class="flex flex-col items-center justify-center bg-sky-900/80 hover:bg-sky-800 active:scale-95 px-1.5 py-0.5 rounded-lg border border-sky-600 transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
                 <span class="text-xs">🛡️</span>
                 <span class="text-[6px] font-black text-sky-200">SAFE</span>
             </button>
 
-            <!-- Save Game Button -->
             <button id="save-btn" onclick="saveGame()" title="Save Game" class="flex flex-col items-center justify-center bg-emerald-900/80 hover:bg-emerald-800 active:scale-95 px-1.5 py-0.5 rounded-lg border border-emerald-600 transition cursor-pointer">
                 <span class="text-xs">💾</span>
                 <span class="text-[6px] font-black text-emerald-200">SAVE</span>
             </button>
 
-            <!-- Resume Game Button -->
             <button id="resume-btn" onclick="resumeGame()" title="Resume Saved Game" class="flex flex-col items-center justify-center bg-indigo-900/80 hover:bg-indigo-800 active:scale-95 px-1.5 py-0.5 rounded-lg border border-indigo-600 transition cursor-pointer">
                 <span class="text-xs">📂</span>
                 <span class="text-[6px] font-black text-indigo-200">RESUME</span>
             </button>
 
-            <!-- Volume Toggle Button -->
             <button id="sound-btn" onclick="toggleSound()" title="Toggle Sound" class="flex flex-col items-center justify-center bg-slate-900 hover:bg-slate-800 active:scale-95 px-1.5 py-0.5 rounded-lg border border-slate-700 transition cursor-pointer">
                 <span id="sound-icon" class="text-xs">🔊</span>
                 <span id="sound-text" class="text-[6px] font-black text-slate-300">SOUND</span>
@@ -284,7 +275,6 @@
                 container.style.pointerEvents = 'auto';
                 gameStarted = true;
                 
-                // Check if there is an existing saved game on startup
                 if (localStorage.getItem('twoCellStacks_saveGame')) {
                     resumeGame();
                 } else {
@@ -303,50 +293,64 @@
             return Math.min(cols, 7);
         }
 
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playSound(type) {
-            if (isMuted || !audioCtx) return;
-            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            let now = audioCtx.currentTime;
+        let audioCtx = null;
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
 
-            if (type === 'pop') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(380, now);
-                osc.frequency.exponentialRampToValueAtTime(750, now + 0.12);
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
-                osc.start(now); osc.stop(now + 0.12);
-            } else if (type === 'match') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(500, now);
-                osc.frequency.exponentialRampToValueAtTime(1050, now + 0.22);
-                gain.gain.setValueAtTime(0.35, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.22);
-                osc.start(now); osc.stop(now + 0.22);
-            } else if (type === 'powerup' || type === 'checkpoint' || type === 'alert') {
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(523.25, now);
-                osc.frequency.setValueAtTime(659.25, now + 0.08);
-                osc.frequency.setValueAtTime(783.99, now + 0.16);
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
-                osc.start(now); osc.stop(now + 0.3);
-            } else if (type === 'win') {
-                let notes = [523.25, 659.25, 783.99, 1046.50];
-                notes.forEach((freq, idx) => {
-                    let startTime = now + idx * 0.1;
-                    let o = audioCtx.createOscillator();
-                    let g = audioCtx.createGain();
-                    o.connect(g); g.connect(audioCtx.destination);
-                    o.frequency.setValueAtTime(freq, startTime);
-                    g.gain.setValueAtTime(0.35, startTime);
-                    g.gain.linearRampToValueAtTime(0.01, startTime + 0.28);
-                    o.start(startTime); o.stop(startTime + 0.28);
-                });
+        function playSound(type) {
+            if (isMuted) return;
+            try {
+                const ctx = getAudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                let now = ctx.currentTime;
+
+                if (type === 'pop') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(380, now);
+                    osc.frequency.exponentialRampToValueAtTime(750, now + 0.12);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now); osc.stop(now + 0.12);
+                } else if (type === 'match') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(500, now);
+                    osc.frequency.exponentialRampToValueAtTime(1050, now + 0.22);
+                    gain.gain.setValueAtTime(0.35, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.22);
+                    osc.start(now); osc.stop(now + 0.22);
+                } else if (type === 'powerup' || type === 'checkpoint' || type === 'alert') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.08);
+                    osc.frequency.setValueAtTime(783.99, now + 0.16);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'win') {
+                    let notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        let startTime = now + idx * 0.1;
+                        let o = ctx.createOscillator();
+                        let g = ctx.createGain();
+                        o.connect(g); g.connect(ctx.destination);
+                        o.frequency.setValueAtTime(freq, startTime);
+                        g.gain.setValueAtTime(0.35, startTime);
+                        g.gain.linearRampToValueAtTime(0.01, startTime + 0.28);
+                        o.start(startTime); o.stop(startTime + 0.28);
+                    });
+                }
+            } catch (e) {
+                console.error("Audio error:", e);
             }
         }
 
@@ -385,11 +389,10 @@
 
             saveSafeStateCheckpoint();
             resetLayerTimer();
-            saveGame(); // Auto-save new game start
+            saveGame();
             render();
         }
 
-        // --- Save and Resume Features ---
         function saveGame() {
             try {
                 const saveData = {
@@ -438,7 +441,8 @@
             timerInterval = setInterval(() => {
                 if (!gameStarted || document.hidden || gameState.isAnimating) return;
                 layerTimerSeconds--;
-                document.getElementById('timer-count').textContent = `${layerTimerSeconds}s`;
+                const timerElem = document.getElementById('timer-count');
+                if (timerElem) timerElem.textContent = `${layerTimerSeconds}s`;
                 if (layerTimerSeconds <= 0) {
                     addRandomLayer();
                     layerTimerSeconds = 30;
@@ -565,7 +569,6 @@
                 document.getElementById('instruction-banner').textContent = 'Select from Two Cell Stacks & Tap Column to Fire!';
             }
 
-            // Render Goals inside dedicated row
             const goalsContainer = document.getElementById('goals-container');
             goalsContainer.innerHTML = '';
             let activeColors = getActiveColors();
@@ -581,7 +584,6 @@
                 }
             });
 
-            // Render Holding Cell (2 Blocks)
             const holdingContainer = document.getElementById('holding-cell-container');
             holdingContainer.innerHTML = '';
             gameState.holdingCell.forEach((block, idx) => {
@@ -597,10 +599,11 @@
 
             let activeCols = getColumnCount();
 
-            // Render Board Grid
             const boardGrid = document.getElementById('board-grid');
             boardGrid.innerHTML = '';
-            boardGrid.className = `grid grid-cols-${activeCols} flex-grow my-1 px-1 relative items-start bg-slate-950/40 rounded-xl border border-slate-800 shadow-inner overflow-hidden`;
+            // FIX: Using explicit inline grid-template-columns instead of dynamic Tailwind classes to prevent layout freezing
+            boardGrid.style.gridTemplateColumns = `repeat(${activeCols}, minmax(0, 1fr))`;
+            boardGrid.className = `grid flex-grow my-1 px-1 relative items-start bg-slate-950/40 rounded-xl border border-slate-800 shadow-inner overflow-hidden`;
 
             for (let c = 0; c < activeCols; c++) {
                 const colDiv = document.createElement('div');
@@ -684,7 +687,7 @@
             gameState.holdingCell[gameState.selectedHoldingIndex] = generateRandomBlock();
             gameState.moves--;
 
-            saveGame(); // Auto-save after each move
+            saveGame();
             render();
             checkGameConditions();
 
