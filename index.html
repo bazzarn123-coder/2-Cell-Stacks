@@ -11,7 +11,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;900&display=swap');
         
-        /* Ensure full-screen wrapper respects safe area insets on mobile devices */
+        /* Respect safe areas and add generous bottom padding above navigation bar */
         body, html {
             font-family: 'Fredoka', sans-serif;
             background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
@@ -21,7 +21,7 @@
             height: 100dvh;
             margin: 0;
             padding-top: max(8px, env(safe-area-inset-top));
-            padding-bottom: max(16px, env(safe-area-inset-bottom));
+            padding-bottom: max(48px, calc(env(safe-area-inset-bottom) + 28px));
             padding-left: max(8px, env(safe-area-inset-left));
             padding-right: max(8px, env(safe-area-inset-right));
             box-sizing: border-box;
@@ -42,7 +42,7 @@
             position: absolute;
             left: 4px;
             right: 4px;
-            height: 48px;
+            height: 44px;
             border-radius: 0.85rem;
             display: flex;
             align-items: center;
@@ -58,7 +58,7 @@
                 rgba(0, 0, 0, 0.15) 6px,
                 rgba(0, 0, 0, 0.15) 7px
             );
-            box-shadow: 0 10px 20px rgba(0,0,0,0.4), 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4), 
                         inset 0 3px 4px rgba(255,255,255,0.6), 
                         inset 0 -4px 6px rgba(0,0,0,0.25);
             transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
@@ -177,9 +177,17 @@
     </div>
 
     <!-- Main Fullscreen Game Container -->
-    <div id="game-container" class="game-board-bg relative w-full h-full rounded-2xl p-3 flex flex-col justify-between border-2 border-slate-600 shadow-2xl opacity-0 transition-opacity duration-500 pointer-events-none">
+    <div id="game-container" class="game-board-bg relative w-full h-full rounded-2xl p-3 pb-6 flex flex-col justify-between border-2 border-slate-600 shadow-2xl opacity-0 transition-opacity duration-500 pointer-events-none mb-4">
         
-        <!-- Top Bar -->
+        <!-- Separate Dedicated Goals Bar Row -->
+        <div class="flex items-center justify-between bg-slate-950/90 px-3 py-1.5 rounded-2xl border border-slate-700/80 shadow flex-shrink-0 mb-1">
+            <span class="text-[9px] font-black uppercase text-amber-400 tracking-wider">TARGET GOALS:</span>
+            <div id="goals-container" class="flex items-center gap-3 overflow-x-auto py-0.5">
+                <!-- Dynamically populated goals -->
+            </div>
+        </div>
+
+        <!-- Top Stats Bar: Level, Moves, Safe State, Timer -->
         <div class="flex items-center justify-between gap-2 bg-slate-950/85 px-3 py-2 rounded-2xl border border-slate-700 shadow-inner flex-shrink-0">
             <div class="flex flex-col items-center justify-center bg-slate-900 px-3 py-1 rounded-xl border border-slate-800 shadow">
                 <span class="text-[8px] font-black uppercase text-slate-400">LVL</span>
@@ -200,34 +208,32 @@
                 <span class="text-sm">🛡️</span>
                 <span class="text-[8px] font-black text-sky-200">SAFE</span>
             </button>
-
-            <div id="goals-container" class="flex items-center gap-2 overflow-x-auto max-w-[200px] py-1"></div>
         </div>
 
         <!-- Powerups Toolbar -->
-        <div class="grid grid-cols-3 gap-3 px-1 flex-shrink-0">
-            <button onclick="usePowerup('wildcard')" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-xs font-black py-2 px-3 rounded-xl border border-purple-400/40 shadow-lg active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+        <div class="grid grid-cols-3 gap-2.5 px-1 my-1.5 flex-shrink-0">
+            <button onclick="usePowerup('wildcard')" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-xs font-black py-2 px-2 rounded-xl border border-purple-400/40 shadow-lg active:scale-95 flex items-center justify-center gap-1 cursor-pointer">
                 <span>🌈</span> <span id="pw-wildcard">Wild (1)</span>
             </button>
-            <button onclick="usePowerup('hammer')" class="bg-gradient-to-r from-amber-600 to-orange-600 text-xs font-black py-2 px-3 rounded-xl border border-amber-400/40 shadow-lg active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+            <button onclick="usePowerup('hammer')" class="bg-gradient-to-r from-amber-600 to-orange-600 text-xs font-black py-2 px-2 rounded-xl border border-amber-400/40 shadow-lg active:scale-95 flex items-center justify-center gap-1 cursor-pointer">
                 <span>🔨</span> <span id="pw-hammer">Hammer (1)</span>
             </button>
-            <button onclick="usePowerup('moves')" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-xs font-black py-2 px-3 rounded-xl border border-emerald-400/40 shadow-lg active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+            <button onclick="usePowerup('moves')" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-xs font-black py-2 px-2 rounded-xl border border-emerald-400/40 shadow-lg active:scale-95 flex items-center justify-center gap-1 cursor-pointer">
                 <span>⚡</span> <span id="pw-moves">+8 Moves</span>
             </button>
         </div>
 
         <!-- Main Card Stacks Grid Board -->
-        <div id="board-grid" class="grid flex-grow my-2 px-1 relative items-start bg-slate-950/40 rounded-2xl border border-slate-800 shadow-inner overflow-hidden"></div>
+        <div id="board-grid" class="grid flex-grow my-1 px-1 relative items-start bg-slate-950/40 rounded-2xl border border-slate-800 shadow-inner overflow-hidden"></div>
 
         <!-- Instruction banner -->
-        <div id="instruction-banner" class="text-center font-black text-xs sm:text-sm tracking-widest text-amber-300 uppercase py-2.5 bg-slate-950/80 rounded-xl border border-slate-800 shadow-inner flex-shrink-0">
+        <div id="instruction-banner" class="text-center font-black text-[11px] sm:text-xs tracking-wider text-amber-300 uppercase py-2 bg-slate-950/80 rounded-xl border border-slate-800 shadow-inner my-1 flex-shrink-0">
             Select from Two Cell Stacks & Tap Column to Fire!
         </div>
 
         <!-- Bottom Holding Cell Tray -->
-        <div class="flex flex-col items-center p-3 bg-slate-950/80 rounded-2xl border border-slate-800 shadow-xl flex-shrink-0">
-            <span class="text-xs text-slate-300 font-extrabold uppercase tracking-wider mb-2">Two Cell Stacks (Pick 1 of 2):</span>
+        <div class="flex flex-col items-center p-2.5 bg-slate-950/90 rounded-2xl border border-slate-800 shadow-2xl flex-shrink-0 mb-3">
+            <span class="text-[11px] text-slate-300 font-extrabold uppercase tracking-wider mb-1.5">Two Cell Stacks (Pick 1 of 2):</span>
             <div id="holding-cell-container" class="flex items-center justify-center gap-6"></div>
         </div>
     </div>
@@ -519,6 +525,7 @@
                 document.getElementById('instruction-banner').textContent = 'Select from Two Cell Stacks & Tap Column to Fire!';
             }
 
+            // Render Goals inside dedicated row
             const goalsContainer = document.getElementById('goals-container');
             goalsContainer.innerHTML = '';
             let activeColors = getActiveColors();
@@ -526,19 +533,20 @@
                 let remaining = gameState.goals[color] || 0;
                 let isDone = remaining <= 0;
                 goalsContainer.innerHTML += `
-                    <div class="flex flex-col items-center flex-shrink-0">
-                        <div class="w-6 h-6 cell-block cube-${color} text-[10px] flex items-center justify-center ${isDone ? 'opacity-40' : ''}" style="position:relative; height:24px;">${color[0].toUpperCase()}</div>
-                        <span class="text-[9px] font-black text-slate-300 mt-1">${isDone ? '✓' : remaining}</span>
+                    <div class="flex items-center gap-1 bg-slate-900/90 px-2 py-0.5 rounded-lg border border-slate-800 shadow-sm flex-shrink-0">
+                        <div class="w-5 h-5 cell-block cube-${color} text-[9px] flex items-center justify-center font-black ${isDone ? 'opacity-40' : ''}" style="position:relative; height:20px;">${color[0].toUpperCase()}</div>
+                        <span class="text-[10px] font-black ${isDone ? 'text-emerald-400' : 'text-slate-200'}">${isDone ? '✓' : remaining}</span>
                     </div>
                 `;
             });
 
+            // Render Holding Cell (2 Blocks)
             const holdingContainer = document.getElementById('holding-cell-container');
             holdingContainer.innerHTML = '';
             gameState.holdingCell.forEach((block, idx) => {
                 const isSelected = idx === gameState.selectedHoldingIndex;
                 const blockDiv = document.createElement('div');
-                blockDiv.className = `w-16 h-16 sm:w-20 sm:h-20 cell-block cube-${block.color} text-2xl sm:text-3xl cursor-pointer transition-all ${isSelected ? 'ring-4 ring-amber-400 scale-110 shadow-2xl z-10' : 'opacity-75 hover:opacity-100'}`;
+                blockDiv.className = `w-14 h-14 sm:w-18 sm:h-18 cell-block cube-${block.color} text-xl sm:text-2xl cursor-pointer transition-all ${isSelected ? 'ring-4 ring-amber-400 scale-110 shadow-2xl z-10' : 'opacity-75 hover:opacity-100'}`;
                 blockDiv.style.position = 'relative';
                 blockDiv.textContent = block.value;
                 blockDiv.title = `Click to select holding stack #${idx + 1}`;
@@ -548,14 +556,15 @@
 
             let activeCols = getColumnCount();
 
+            // Render Board Grid
             const boardGrid = document.getElementById('board-grid');
             boardGrid.innerHTML = '';
-            boardGrid.className = `grid grid-cols-${activeCols} flex-grow my-2 px-1 relative items-start bg-slate-950/40 rounded-2xl border border-slate-800 shadow-inner overflow-hidden`;
+            boardGrid.className = `grid grid-cols-${activeCols} flex-grow my-1 px-1 relative items-start bg-slate-950/40 rounded-2xl border border-slate-800 shadow-inner overflow-hidden`;
 
             for (let c = 0; c < activeCols; c++) {
                 const colDiv = document.createElement('div');
                 let borderClass = c < activeCols - 1 ? 'border-r border-slate-700/60' : '';
-                colDiv.className = `relative h-full cursor-pointer transition-all p-2 ${borderClass} ${gameState.activeTool === 'hammer' ? 'bg-amber-500/30 border-2 border-amber-400 animate-pulse' : 'hover:bg-slate-800/20'}`;
+                colDiv.className = `relative h-full cursor-pointer transition-all p-1.5 ${borderClass} ${gameState.activeTool === 'hammer' ? 'bg-amber-500/30 border-2 border-amber-400 animate-pulse' : 'hover:bg-slate-800/20'}`;
                 colDiv.id = `column-${c}`;
                 colDiv.onclick = () => handleColumnAction(c);
 
@@ -564,8 +573,8 @@
                     let tile = stack[i];
                     const tileDiv = document.createElement('div');
                     let animClass = (i === stack.length - 1 && tile.isNewlyAdded) ? 'animate-slide-up' : '';
-                    tileDiv.className = `cell-block cube-${tile.color} ${animClass} text-base sm:text-lg`;
-                    tileDiv.style.top = `${10 + i * 32}px`;
+                    tileDiv.className = `cell-block cube-${tile.color} ${animClass} text-sm sm:text-base`;
+                    tileDiv.style.top = `${8 + i * 28}px`;
                     tileDiv.style.zIndex = i + 1;
                     tileDiv.textContent = tile.value;
                     colDiv.appendChild(tileDiv);
